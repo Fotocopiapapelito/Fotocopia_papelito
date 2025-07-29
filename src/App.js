@@ -1,8 +1,9 @@
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { UploadCloud, FileText, X, Printer, Loader2 } from 'lucide-react';
+import { UploadCloud, FileText, X, Printer, Loader2, Phone, Mail } from 'lucide-react';
 
 export default function App() {
+    const [customerName, setCustomerName] = useState('');
     const [files, setFiles] = useState([]);
     const [isOrderSent, setIsOrderSent] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -24,7 +25,7 @@ export default function App() {
         setSubmitError(null);
     }, []);
 
-    const { getRootProps, getInputProps, isDragActive } = useDropzone({ 
+    const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop,
         accept: {
             'application/pdf': ['.pdf'],
@@ -48,6 +49,11 @@ export default function App() {
     };
 
     const handleSubmitOrder = async () => {
+        if (!customerName.trim()) {
+            setSubmitError('Por favor, introduce tu nombre.');
+            return;
+        }
+
         const YOUR_EMAIL = 'Fotocopiapapelito@gmail.com';
         const FORM_ENDPOINT = `https://formsubmit.co/${YOUR_EMAIL}`;
 
@@ -57,12 +63,12 @@ export default function App() {
         const formData = new FormData();
 
         // FormSubmit settings
-        formData.append('_subject', `New Order from Papelito Fotocopia!`);
-        formData.append('_captcha', 'false'); // Disables captcha for now
+        formData.append('_subject', `Nuevo Pedido de ${customerName}`);
+        formData.append('_captcha', 'false');
 
-        let orderSummary = 'Order Details:\n\n';
+        let orderSummary = `Pedido para: ${customerName}\n\nDetalles del Pedido:\n\n`;
         files.forEach((file, index) => {
-            const optionsSummary = `File #${index + 1}: ${file.name}\nOptions: ${file.options.colorMode === 'bn' ? 'B&W' : 'Color'}, ${file.options.sides === 'una' ? 'Single-Sided' : 'Double-Sided'}, ${file.options.copies} copies.\n\n`;
+            const optionsSummary = `Archivo #${index + 1}: ${file.name}\nOpciones: ${file.options.colorMode === 'bn' ? 'B&N' : 'Color'}, ${file.options.sides === 'una' ? 'Una Cara' : 'Dos Caras'}, ${file.options.copies} copias.\n\n`;
             orderSummary += optionsSummary;
             formData.append(`attachment_${index + 1}`, file.fileObject);
         });
@@ -76,16 +82,15 @@ export default function App() {
             });
 
             if (response.ok) {
-                // FormSubmit might show an interstitial page on first submission
-                // For API submissions, a successful response is enough.
                 setIsOrderSent(true);
                 setFiles([]);
+                setCustomerName('');
             } else {
                 throw new Error('Network response was not ok.');
             }
         } catch (error) {
             console.error('Error submitting form:', error);
-            setSubmitError('There was an error sending your order. Please try again.');
+            setSubmitError('Hubo un error al enviar tu pedido. Por favor, inténtalo de nuevo.');
         } finally {
             setIsSubmitting(false);
         }
@@ -97,7 +102,16 @@ export default function App() {
 
                 <header className="text-center mb-8">
                     <h1 className="text-4xl md:text-5xl font-bold text-blue-600">Papelito Fotocopia</h1>
-                    <p className="text-lg text-gray-600 mt-2">Sube tus documentos para imprimir</p>
+                    <div className="flex justify-center items-center space-x-4 mt-3 text-gray-600">
+                        <div className="flex items-center">
+                            <Phone size={16} className="mr-2"/>
+                            <span>612 202 784</span>
+                        </div>
+                        <div className="flex items-center">
+                            <Mail size={16} className="mr-2"/>
+                            <span>Fotocopiapapelito@gmail.com</span>
+                        </div>
+                    </div>
                 </header>
 
                 <main className="w-full max-w-3xl bg-white p-6 md:p-8 rounded-2xl shadow-lg">
@@ -114,11 +128,22 @@ export default function App() {
                         </div>
                     ) : (
                         <>
+                            <div className="mb-6">
+                                <label htmlFor="customerName" className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
+                                <input
+                                    type="text"
+                                    id="customerName"
+                                    value={customerName}
+                                    onChange={(e) => setCustomerName(e.target.value)}
+                                    placeholder="Tu Nombre y Apellido"
+                                    className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                    required
+                                />
+                            </div>
+
                             <div
                                 {...getRootProps()}
-                                className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
-                                isDragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-blue-400'
-                                }`}
+                                className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${isDragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-blue-400'}`}
                             >
                                 <input {...getInputProps()} />
                                 <div className="flex flex-col items-center text-gray-500">
@@ -155,7 +180,7 @@ export default function App() {
                                     <div className="mt-8 pt-6 border-t flex justify-end">
                                         <button
                                             onClick={handleSubmitOrder}
-                                            disabled={isSubmitting}
+                                            disabled={isSubmitting || files.length === 0}
                                             className="flex items-center justify-center bg-green-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-700 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:bg-gray-400 disabled:cursor-not-allowed"
                                         >
                                             {isSubmitting ? (
@@ -171,8 +196,9 @@ export default function App() {
                         </>
                     )}
                 </main>
-                 <footer className="text-center mt-8 text-gray-500 text-sm">
-                    <p>&copy; {new Date().getFullYear()} Papelito Fotocopia. Todos los derechos reservados.</p>
+                <footer className="text-center mt-8 text-gray-500">
+                    <p className="text-sm">&copy; {new Date().getFullYear()} Papelito Fotocopia. Todos los derechos reservados.</p>
+                    <p className="text-xs mt-2">Hecho por Patrick - 628 359 125</p>
                 </footer>
             </div>
         </div>
