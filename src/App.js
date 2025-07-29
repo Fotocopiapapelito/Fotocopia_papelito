@@ -1,0 +1,230 @@
+import React, { useState, useCallback } from 'react';
+import { useDropzone } from 'react-dropzone';
+import { UploadCloud, FileText, X, Printer } from 'lucide-react';
+
+export default function App() {
+    const [files, setFiles] = useState([]);
+    const [isOrderSent, setIsOrderSent] = useState(false);
+
+    const onDrop = useCallback((acceptedFiles) => {
+        const newFiles = acceptedFiles.map(file => ({
+            id: `${file.name}-${file.lastModified}-${file.size}`,
+            fileObject: file,
+            name: file.name,
+            options: {
+                colorMode: 'bn',
+                copies: 1,
+                sides: 'una',
+            }
+        }));
+        setFiles(prevFiles => [...prevFiles, ...newFiles]);
+        setIsOrderSent(false);
+    }, []);
+
+    const { getRootProps, getInputProps, isDragActive } = useDropzone({ 
+        onDrop,
+        accept: {
+            'application/pdf': ['.pdf'],
+            'application/msword': ['.doc'],
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+            'image/jpeg': ['.jpg', '.jpeg'],
+            'image/png': ['.png'],
+        }
+    });
+
+    const handleOptionChange = (id, option, value) => {
+        setFiles(prevFiles =>
+            prevFiles.map(file =>
+                file.id === id ? { ...file, options: { ...file.options, [option]: value } } : file
+            )
+        );
+    };
+
+    const handleRemoveFile = (id) => {
+        setFiles(prevFiles => prevFiles.filter(file => file.id !== id));
+    };
+
+    const handleSubmitOrder = () => {
+        console.log("--- NUEVO PEDIDO ---");
+        files.forEach(file => {
+            console.log("Archivo:", file.name);
+            console.log("  - Modo:", file.options.colorMode === 'bn' ? 'Blanco y Negro' : 'Color');
+            console.log("  - Copias:", file.options.copies);
+            console.log("  - Caras:", file.options.sides === 'una' ? 'Una Cara' : 'Dos Caras');
+        });
+        console.log("--------------------");
+        
+        setIsOrderSent(true);
+        setFiles([]);
+    };
+
+    return (
+        <div className="antialiased bg-gray-50 text-gray-800 font-sans">
+            <div className="min-h-screen flex flex-col items-center justify-center p-4">
+                
+                <header className="text-center mb-8">
+                    <h1 className="text-4xl md:text-5xl font-bold text-blue-600">Papelito Fotocopia</h1>
+                    <p className="text-lg text-gray-600 mt-2">Sube tus documentos para imprimir</p>
+                </header>
+
+                <main className="w-full max-w-3xl bg-white p-6 md:p-8 rounded-2xl shadow-lg">
+                    {isOrderSent ? (
+                        <div className="text-center p-8">
+                            <h2 className="text-2xl font-semibold text-green-600 mb-4">¡Pedido Enviado!</h2>
+                            <p className="text-gray-600 mb-6">Hemos recibido tu pedido correctamente. ¡Gracias por confiar en nosotros!</p>
+                            <button
+                                onClick={() => setIsOrderSent(false)}
+                                className="bg-blue-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-700 transition-colors"
+                            >
+                                Hacer un Nuevo Pedido
+                            </button>
+                        </div>
+                    ) : (
+                        <>
+                            <div
+                                {...getRootProps()}
+                                className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
+                                isDragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-blue-400'
+                                }`}
+                            >
+                                <input {...getInputProps()} />
+                                <div className="flex flex-col items-center text-gray-500">
+                                    <UploadCloud className="w-12 h-12 mb-4" />
+                                    {isDragActive ? (
+                                        <p className="text-lg font-semibold">Suelta los archivos aquí...</p>
+                                    ) : (
+                                        <p className="text-lg font-semibold">Arrastra tus archivos o haz clic para seleccionar</p>
+                                    )}
+                                    <p className="text-sm mt-1">PDF, DOC, DOCX, JPG, PNG</p>
+                                </div>
+                            </div>
+
+                            {files.length > 0 && (
+                                <div className="mt-8">
+                                    <h2 className="text-xl font-semibold mb-4 border-b pb-2">Archivos para Imprimir</h2>
+                                    <div className="space-y-4">
+                                        {files.map(file => (
+                                            <FileItem
+                                                key={file.id}
+                                                file={file}
+                                                onOptionChange={handleOptionChange}
+                                                onRemove={handleRemoveFile}
+                                            />
+                                        ))}
+                                    </div>
+                                    
+                                    <div className="mt-8 pt-6 border-t flex justify-end">
+                                        <button
+                                            onClick={handleSubmitOrder}
+                                            className="flex items-center justify-center bg-green-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-700 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                                        >
+                                            <Printer className="w-5 h-5 mr-2" />
+                                            Enviar Pedido
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </>
+                    )}
+                </main>
+                 <footer className="text-center mt-8 text-gray-500 text-sm">
+                    <p>&copy; {new Date().getFullYear()} Papelito Fotocopia. Todos los derechos reservados.</p>
+                </footer>
+            </div>
+        </div>
+    );
+}
+
+function FileItem({ file, onOptionChange, onRemove }) {
+    return (
+        <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-sm transition-shadow hover:shadow-md">
+            <div className="flex flex-col md:flex-row md:items-center justify-between">
+                <div className="flex items-center mb-4 md:mb-0">
+                    <FileText className="w-8 h-8 text-blue-500 mr-3 flex-shrink-0" />
+                    <span className="font-medium truncate" title={file.name}>{file.name}</span>
+                </div>
+                
+                <button
+                    onClick={() => onRemove(file.id)}
+                    className="self-start md:self-center text-gray-400 hover:text-red-500 transition-colors"
+                    aria-label="Quitar archivo"
+                >
+                    <X className="w-6 h-6" />
+                </button>
+            </div>
+
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-gray-200">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Color</label>
+                    <div className="flex space-x-4">
+                        <label className="flex items-center cursor-pointer">
+                            <input
+                                type="radio"
+                                name={`colorMode-${file.id}`}
+                                value="bn"
+                                checked={file.options.colorMode === 'bn'}
+                                onChange={(e) => onOptionChange(file.id, 'colorMode', e.target.value)}
+                                className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                            />
+                            <span className="ml-2 text-sm">Blanco y Negro</span>
+                        </label>
+                        <label className="flex items-center cursor-pointer">
+                            <input
+                                type="radio"
+                                name={`colorMode-${file.id}`}
+                                value="color"
+                                checked={file.options.colorMode === 'color'}
+                                onChange={(e) => onOptionChange(file.id, 'colorMode', e.target.value)}
+                                className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                            />
+                            <span className="ml-2 text-sm">Color</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Caras</label>
+                    <div className="flex space-x-4">
+                        <label className="flex items-center cursor-pointer">
+                            <input
+                                type="radio"
+                                name={`sides-${file.id}`}
+                                value="una"
+                                checked={file.options.sides === 'una'}
+                                onChange={(e) => onOptionChange(file.id, 'sides', e.target.value)}
+                                className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                            />
+                            <span className="ml-2 text-sm">Una cara</span>
+                        </label>
+                        <label className="flex items-center cursor-pointer">
+                            <input
+                                type="radio"
+                                name={`sides-${file.id}`}
+                                value="dos"
+                                checked={file.options.sides === 'dos'}
+                                onChange={(e) => onOptionChange(file.id, 'sides', e.target.value)}
+                                className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                            />
+                            <span className="ml-2 text-sm">Dos caras</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div>
+                    <label htmlFor={`copies-${file.id}`} className="block text-sm font-medium text-gray-700 mb-2">
+                        Copias
+                    </label>
+                    <input
+                        type="number"
+                        id={`copies-${file.id}`}
+                        name={`copies-${file.id}`}
+                        min="1"
+                        value={file.options.copies}
+                        onChange={(e) => onOptionChange(file.id, 'copies', parseInt(e.target.value, 10))}
+                        className="w-24 p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                    />
+                </div>
+            </div>
+        </div>
+    );
+}
