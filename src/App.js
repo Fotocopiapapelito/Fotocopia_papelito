@@ -1,10 +1,12 @@
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { UploadCloud, FileText, X, Printer } from 'lucide-react';
+import { UploadCloud, FileText, X, Printer, Loader2 } from 'lucide-react';
 
 export default function App() {
     const [files, setFiles] = useState([]);
     const [isOrderSent, setIsOrderSent] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState(null);
 
     const onDrop = useCallback((acceptedFiles) => {
         const newFiles = acceptedFiles.map(file => ({
@@ -19,6 +21,7 @@ export default function App() {
         }));
         setFiles(prevFiles => [...prevFiles, ...newFiles]);
         setIsOrderSent(false);
+        setSubmitError(null);
     }, []);
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({ 
@@ -44,24 +47,54 @@ export default function App() {
         setFiles(prevFiles => prevFiles.filter(file => file.id !== id));
     };
 
-    const handleSubmitOrder = () => {
-        console.log("--- NUEVO PEDIDO ---");
-        files.forEach(file => {
-            console.log("Archivo:", file.name);
-            console.log("  - Modo:", file.options.colorMode === 'bn' ? 'Blanco y Negro' : 'Color');
-            console.log("  - Copias:", file.options.copies);
-            console.log("  - Caras:", file.options.sides === 'una' ? 'Una Cara' : 'Dos Caras');
+    const handleSubmitOrder = async () => {
+        const YOUR_EMAIL = 'Fotocopiapapelito@gmail.com';
+        const FORM_ENDPOINT = `https://formsubmit.co/${YOUR_EMAIL}`;
+
+        setIsSubmitting(true);
+        setSubmitError(null);
+
+        const formData = new FormData();
+
+        // FormSubmit settings
+        formData.append('_subject', `New Order from Papelito Fotocopia!`);
+        formData.append('_captcha', 'false'); // Disables captcha for now
+
+        let orderSummary = 'Order Details:\n\n';
+        files.forEach((file, index) => {
+            const optionsSummary = `File #${index + 1}: ${file.name}\nOptions: ${file.options.colorMode === 'bn' ? 'B&W' : 'Color'}, ${file.options.sides === 'una' ? 'Single-Sided' : 'Double-Sided'}, ${file.options.copies} copies.\n\n`;
+            orderSummary += optionsSummary;
+            formData.append(`attachment_${index + 1}`, file.fileObject);
         });
-        console.log("--------------------");
-        
-        setIsOrderSent(true);
-        setFiles([]);
+
+        formData.append('message', orderSummary);
+
+        try {
+            const response = await fetch(FORM_ENDPOINT, {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (response.ok) {
+                // FormSubmit might show an interstitial page on first submission
+                // For API submissions, a successful response is enough.
+                setIsOrderSent(true);
+                setFiles([]);
+            } else {
+                throw new Error('Network response was not ok.');
+            }
+        } catch (error) {
+            console.error('Error submitting form:', error);
+            setSubmitError('There was an error sending your order. Please try again.');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
         <div className="antialiased bg-gray-50 text-gray-800 font-sans">
             <div className="min-h-screen flex flex-col items-center justify-center p-4">
-                
+
                 <header className="text-center mb-8">
                     <h1 className="text-4xl md:text-5xl font-bold text-blue-600">Papelito Fotocopia</h1>
                     <p className="text-lg text-gray-600 mt-2">Sube tus documentos para imprimir</p>
@@ -71,7 +104,7 @@ export default function App() {
                     {isOrderSent ? (
                         <div className="text-center p-8">
                             <h2 className="text-2xl font-semibold text-green-600 mb-4">¡Pedido Enviado!</h2>
-                            <p className="text-gray-600 mb-6">Hemos recibido tu pedido correctamente. ¡Gracias por confiar en nosotros!</p>
+                            <p className="text-gray-600 mb-6">Hemos recibido tu pedido correctamente. ¡Gracias!</p>
                             <button
                                 onClick={() => setIsOrderSent(false)}
                                 className="bg-blue-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-700 transition-colors"
@@ -112,14 +145,25 @@ export default function App() {
                                             />
                                         ))}
                                     </div>
-                                    
+
+                                    {submitError && (
+                                        <div className="mt-4 text-center text-red-600 bg-red-100 p-3 rounded-lg">
+                                            {submitError}
+                                        </div>
+                                    )}
+
                                     <div className="mt-8 pt-6 border-t flex justify-end">
                                         <button
                                             onClick={handleSubmitOrder}
-                                            className="flex items-center justify-center bg-green-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-700 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                                            disabled={isSubmitting}
+                                            className="flex items-center justify-center bg-green-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-700 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:bg-gray-400 disabled:cursor-not-allowed"
                                         >
-                                            <Printer className="w-5 h-5 mr-2" />
-                                            Enviar Pedido
+                                            {isSubmitting ? (
+                                                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                                            ) : (
+                                                <Printer className="w-5 h-5 mr-2" />
+                                            )}
+                                            {isSubmitting ? 'Enviando...' : 'Enviar Pedido'}
                                         </button>
                                     </div>
                                 </div>
@@ -139,11 +183,11 @@ function FileItem({ file, onOptionChange, onRemove }) {
     return (
         <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-sm transition-shadow hover:shadow-md">
             <div className="flex flex-col md:flex-row md:items-center justify-between">
-                <div className="flex items-center mb-4 md:mb-0">
+                <div className="flex items-center mb-4 md:mb-0 min-w-0">
                     <FileText className="w-8 h-8 text-blue-500 mr-3 flex-shrink-0" />
                     <span className="font-medium truncate" title={file.name}>{file.name}</span>
                 </div>
-                
+
                 <button
                     onClick={() => onRemove(file.id)}
                     className="self-start md:self-center text-gray-400 hover:text-red-500 transition-colors"
@@ -209,7 +253,7 @@ function FileItem({ file, onOptionChange, onRemove }) {
                         </label>
                     </div>
                 </div>
-                
+
                 <div>
                     <label htmlFor={`copies-${file.id}`} className="block text-sm font-medium text-gray-700 mb-2">
                         Copias
