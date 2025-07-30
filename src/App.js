@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { UploadCloud, FileText, X, Printer, Loader2, Phone, Mail } from 'lucide-react';
+import { UploadCloud, FileText, X, Printer, Loader2, Phone, Mail, MapPin, Globe } from 'lucide-react';
 
 export default function App() {
     const [customerName, setCustomerName] = useState('');
@@ -16,8 +16,9 @@ export default function App() {
             name: file.name,
             options: {
                 colorMode: 'bn',
-                copies: 1,
                 sides: 'una',
+                paperType: '80g', // Default paper type
+                copies: 1,
             }
         }));
         setFiles(prevFiles => [...prevFiles, ...newFiles]);
@@ -62,13 +63,12 @@ export default function App() {
 
         const formData = new FormData();
 
-        // FormSubmit settings
         formData.append('_subject', `Nuevo Pedido de ${customerName}`);
         formData.append('_captcha', 'false');
 
         let orderSummary = `Pedido para: ${customerName}\n\nDetalles del Pedido:\n\n`;
         files.forEach((file, index) => {
-            const optionsSummary = `Archivo #${index + 1}: ${file.name}\nOpciones: ${file.options.colorMode === 'bn' ? 'B&N' : 'Color'}, ${file.options.sides === 'una' ? 'Una Cara' : 'Dos Caras'}, ${file.options.copies} copias.\n\n`;
+            const optionsSummary = `Archivo #${index + 1}: ${file.name}\nOpciones: ${file.options.colorMode === 'bn' ? 'B&N' : 'Color'}, ${file.options.sides === 'una' ? 'Una Cara' : 'Dos Caras'}, Papel ${file.options.paperType}, ${file.options.copies} copias.\n\n`;
             orderSummary += optionsSummary;
             formData.append(`attachment_${index + 1}`, file.fileObject);
         });
@@ -114,14 +114,26 @@ export default function App() {
                     </div>
                 </header>
 
-                <main className="w-full max-w-3xl bg-white p-6 md:p-8 rounded-2xl shadow-lg">
+                <main className="w-full max-w-4xl bg-white p-6 md:p-8 rounded-2xl shadow-lg">
                     {isOrderSent ? (
                         <div className="text-center p-8">
                             <h2 className="text-2xl font-semibold text-green-600 mb-4">¡Pedido Enviado!</h2>
-                            <p className="text-gray-600 mb-6">Hemos recibido tu pedido correctamente. ¡Gracias!</p>
+                            <p className="text-gray-600 mb-6">Gracias por tu pedido. Puedes recogerlo en nuestra tienda:</p>
+                            <div className="bg-gray-100 p-4 rounded-lg my-4 text-left">
+                                <p className="font-semibold text-gray-800">Dirección:</p>
+                                <p className="text-gray-700">C/La Regente 23, Local Papelito, 29009 Málaga</p>
+                                <div className="mt-4 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
+                                    <a href="https://maps.app.goo.gl/AtQbZmwKQukyEUB59" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors w-full">
+                                        <MapPin size={20} className="mr-2"/> Ver en Google Maps
+                                    </a>
+                                    <a href="https://papelitomalaga.com" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600 transition-colors w-full">
+                                        <Globe size={20} className="mr-2"/> Visita nuestra web
+                                    </a>
+                                </div>
+                            </div>
                             <button
                                 onClick={() => setIsOrderSent(false)}
-                                className="bg-blue-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-700 transition-colors"
+                                className="mt-6 bg-blue-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-700 transition-colors"
                             >
                                 Hacer un Nuevo Pedido
                             </button>
@@ -223,30 +235,16 @@ function FileItem({ file, onOptionChange, onRemove }) {
                 </button>
             </div>
 
-            <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-gray-200">
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-4 gap-6 pt-4 border-t border-gray-200">
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Color</label>
                     <div className="flex space-x-4">
                         <label className="flex items-center cursor-pointer">
-                            <input
-                                type="radio"
-                                name={`colorMode-${file.id}`}
-                                value="bn"
-                                checked={file.options.colorMode === 'bn'}
-                                onChange={(e) => onOptionChange(file.id, 'colorMode', e.target.value)}
-                                className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-                            />
-                            <span className="ml-2 text-sm">Blanco y Negro</span>
+                            <input type="radio" name={`colorMode-${file.id}`} value="bn" checked={file.options.colorMode === 'bn'} onChange={(e) => onOptionChange(file.id, 'colorMode', e.target.value)} className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"/>
+                            <span className="ml-2 text-sm">B/N</span>
                         </label>
                         <label className="flex items-center cursor-pointer">
-                            <input
-                                type="radio"
-                                name={`colorMode-${file.id}`}
-                                value="color"
-                                checked={file.options.colorMode === 'color'}
-                                onChange={(e) => onOptionChange(file.id, 'colorMode', e.target.value)}
-                                className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-                            />
+                            <input type="radio" name={`colorMode-${file.id}`} value="color" checked={file.options.colorMode === 'color'} onChange={(e) => onOptionChange(file.id, 'colorMode', e.target.value)} className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"/>
                             <span className="ml-2 text-sm">Color</span>
                         </label>
                     </div>
@@ -256,43 +254,34 @@ function FileItem({ file, onOptionChange, onRemove }) {
                     <label className="block text-sm font-medium text-gray-700 mb-2">Caras</label>
                     <div className="flex space-x-4">
                         <label className="flex items-center cursor-pointer">
-                            <input
-                                type="radio"
-                                name={`sides-${file.id}`}
-                                value="una"
-                                checked={file.options.sides === 'una'}
-                                onChange={(e) => onOptionChange(file.id, 'sides', e.target.value)}
-                                className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-                            />
-                            <span className="ml-2 text-sm">Una cara</span>
+                            <input type="radio" name={`sides-${file.id}`} value="una" checked={file.options.sides === 'una'} onChange={(e) => onOptionChange(file.id, 'sides', e.target.value)} className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"/>
+                            <span className="ml-2 text-sm">Una</span>
                         </label>
                         <label className="flex items-center cursor-pointer">
-                            <input
-                                type="radio"
-                                name={`sides-${file.id}`}
-                                value="dos"
-                                checked={file.options.sides === 'dos'}
-                                onChange={(e) => onOptionChange(file.id, 'sides', e.target.value)}
-                                className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-                            />
-                            <span className="ml-2 text-sm">Dos caras</span>
+                            <input type="radio" name={`sides-${file.id}`} value="dos" checked={file.options.sides === 'dos'} onChange={(e) => onOptionChange(file.id, 'sides', e.target.value)} className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"/>
+                            <span className="ml-2 text-sm">Dos</span>
                         </label>
                     </div>
                 </div>
 
                 <div>
-                    <label htmlFor={`copies-${file.id}`} className="block text-sm font-medium text-gray-700 mb-2">
-                        Copias
-                    </label>
-                    <input
-                        type="number"
-                        id={`copies-${file.id}`}
-                        name={`copies-${file.id}`}
-                        min="1"
-                        value={file.options.copies}
-                        onChange={(e) => onOptionChange(file.id, 'copies', parseInt(e.target.value, 10))}
-                        className="w-24 p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                    />
+                    <label htmlFor={`paperType-${file.id}`} className="block text-sm font-medium text-gray-700 mb-2">Tipo de Papel</label>
+                    <select id={`paperType-${file.id}`} value={file.options.paperType} onChange={(e) => onOptionChange(file.id, 'paperType', e.target.value)} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        <option value="80g">80 Gramos</option>
+                        <option value="160g">160 Gramos</option>
+                        <option value="200g">200 Gramos</option>
+                        <option value="cartulina">Cartulina</option>
+                        <option value="papel de foto">Papel de foto</option>
+                        <option value="papel pegatina">Papel pegatina</option>
+                        <option value="papel transparente">Papel transparente</option>
+                        <option value="A3 90g">A3 90 Gramos</option>
+                        <option value="A3 180g">A3 180 Gramos</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label htmlFor={`copies-${file.id}`} className="block text-sm font-medium text-gray-700 mb-2">Copias</label>
+                    <input type="number" id={`copies-${file.id}`} min="1" value={file.options.copies} onChange={(e) => onOptionChange(file.id, 'copies', parseInt(e.target.value, 10))} className="w-24 p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"/>
                 </div>
             </div>
         </div>
