@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { UploadCloud, FileText, X, Printer, Loader2, Phone, Mail, MapPin, Globe, MessageSquare } from 'lucide-react';
+import { UploadCloud, FileText, X, Printer, Loader2, Phone, Mail, MapPin, Globe } from 'lucide-react';
 
 export default function App() {
     const [customerName, setCustomerName] = useState('');
@@ -47,23 +47,6 @@ export default function App() {
 
     const handleRemoveFile = (id) => {
         setFiles(prevFiles => prevFiles.filter(file => file.id !== id));
-    };
-
-    const handleWhatsAppOrder = () => {
-      if (!customerName.trim()) {
-          setSubmitError('Por favor, introduce tu nombre.');
-          return;
-      }
-
-      let message = `*Nuevo Pedido de ${customerName}*\n\n`;
-      files.forEach((file, index) => {
-          message += `*Archivo ${index + 1}:* ${file.name}\n`;
-          message += `*Opciones:* ${file.options.colorMode === 'bn' ? 'B&N' : 'Color'}, ${file.options.sides === 'una' ? 'Una Cara' : 'Doble Cara'}, Papel ${file.options.paperType}, ${file.options.copies} copias.\n\n`;
-      });
-      message += "Por favor, adjunta los archivos a este chat. ¡Gracias!";
-
-      const whatsappUrl = `https://wa.me/34612202784?text=${encodeURIComponent(message)}`;
-      window.open(whatsappUrl, '_blank');
     };
 
     const handleSubmitOrder = async () => {
@@ -206,15 +189,7 @@ export default function App() {
                                         </div>
                                     )}
 
-                                    <div className="mt-8 pt-6 border-t flex flex-col sm:flex-row justify-end sm:space-x-4 space-y-2 sm:space-y-0">
-                                        <button
-                                            onClick={handleWhatsAppOrder}
-                                            disabled={isSubmitting}
-                                            className="flex items-center justify-center bg-green-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-600 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                                        >
-                                            <MessageSquare className="w-5 h-5 mr-2" />
-                                            Enviar por WhatsApp
-                                        </button>
+                                    <div className="mt-8 pt-6 border-t flex justify-end">
                                         <button
                                             onClick={handleSubmitOrder}
                                             disabled={isSubmitting || files.length === 0}
@@ -225,7 +200,7 @@ export default function App() {
                                             ) : (
                                                 <Printer className="w-5 h-5 mr-2" />
                                             )}
-                                            {isSubmitting ? 'Enviando...' : 'Enviar Pedido por Email'}
+                                            {isSubmitting ? 'Enviando...' : 'Enviar Pedido'}
                                         </button>
                                     </div>
                                 </div>
