@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { UploadCloud, FileText, X, Printer, Loader2, Phone, Mail, MapPin, Globe } from 'lucide-react';
+import { UploadCloud, FileText, X, Printer, Loader2, Phone, Mail, MapPin, Globe, MessageSquare } from 'lucide-react';
 
 export default function App() {
     const [customerName, setCustomerName] = useState('');
@@ -49,6 +49,23 @@ export default function App() {
         setFiles(prevFiles => prevFiles.filter(file => file.id !== id));
     };
 
+    const handleWhatsAppOrder = () => {
+      if (!customerName.trim()) {
+          setSubmitError('Por favor, introduce tu nombre.');
+          return;
+      }
+
+      let message = `*Nuevo Pedido de ${customerName}*\n\n`;
+      files.forEach((file, index) => {
+          message += `*Archivo ${index + 1}:* ${file.name}\n`;
+          message += `*Opciones:* ${file.options.colorMode === 'bn' ? 'B&N' : 'Color'}, ${file.options.sides === 'una' ? 'Una Cara' : 'Doble Cara'}, Papel ${file.options.paperType}, ${file.options.copies} copias.\n\n`;
+      });
+      message += "Por favor, adjunta los archivos a este chat. ¡Gracias!";
+
+      const whatsappUrl = `https://wa.me/34612202784?text=${encodeURIComponent(message)}`;
+      window.open(whatsappUrl, '_blank');
+    };
+
     const handleSubmitOrder = async () => {
         if (!customerName.trim()) {
             setSubmitError('Por favor, introduce tu nombre.');
@@ -68,7 +85,7 @@ export default function App() {
 
         let orderSummary = `Pedido para: ${customerName}\n\nDetalles del Pedido:\n\n`;
         files.forEach((file, index) => {
-            const optionsSummary = `Archivo #${index + 1}: ${file.name}\nOpciones: ${file.options.colorMode === 'bn' ? 'B&N' : 'Color'}, ${file.options.sides === 'una' ? 'Una Cara' : 'Dos Caras'}, Papel ${file.options.paperType}, ${file.options.copies} copias.\n\n`;
+            const optionsSummary = `Archivo #${index + 1}: ${file.name}\nOpciones: ${file.options.colorMode === 'bn' ? 'B&N' : 'Color'}, ${file.options.sides === 'una' ? 'Una Cara' : 'Doble Cara'}, Papel ${file.options.paperType}, ${file.options.copies} copias.\n\n`;
             orderSummary += optionsSummary;
             formData.append(`attachment_${index + 1}`, file.fileObject);
         });
@@ -189,18 +206,26 @@ export default function App() {
                                         </div>
                                     )}
 
-                                    <div className="mt-8 pt-6 border-t flex justify-end">
+                                    <div className="mt-8 pt-6 border-t flex flex-col sm:flex-row justify-end sm:space-x-4 space-y-2 sm:space-y-0">
+                                        <button
+                                            onClick={handleWhatsAppOrder}
+                                            disabled={isSubmitting}
+                                            className="flex items-center justify-center bg-green-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-600 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                                        >
+                                            <MessageSquare className="w-5 h-5 mr-2" />
+                                            Enviar por WhatsApp
+                                        </button>
                                         <button
                                             onClick={handleSubmitOrder}
                                             disabled={isSubmitting || files.length === 0}
-                                            className="flex items-center justify-center bg-green-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-700 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                                            className="flex items-center justify-center bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:bg-gray-400 disabled:cursor-not-allowed"
                                         >
                                             {isSubmitting ? (
                                                 <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                                             ) : (
                                                 <Printer className="w-5 h-5 mr-2" />
                                             )}
-                                            {isSubmitting ? 'Enviando...' : 'Enviar Pedido'}
+                                            {isSubmitting ? 'Enviando...' : 'Enviar Pedido por Email'}
                                         </button>
                                     </div>
                                 </div>
@@ -255,11 +280,11 @@ function FileItem({ file, onOptionChange, onRemove }) {
                     <div className="flex space-x-4">
                         <label className="flex items-center cursor-pointer">
                             <input type="radio" name={`sides-${file.id}`} value="una" checked={file.options.sides === 'una'} onChange={(e) => onOptionChange(file.id, 'sides', e.target.value)} className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"/>
-                            <span className="ml-2 text-sm">Una</span>
+                            <span className="ml-2 text-sm">Una Cara (1-sided)</span>
                         </label>
                         <label className="flex items-center cursor-pointer">
                             <input type="radio" name={`sides-${file.id}`} value="dos" checked={file.options.sides === 'dos'} onChange={(e) => onOptionChange(file.id, 'sides', e.target.value)} className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"/>
-                            <span className="ml-2 text-sm">Dos</span>
+                            <span className="ml-2 text-sm">Doble Cara (2-sided)</span>
                         </label>
                     </div>
                 </div>
