@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { UploadCloud, FileText, X, Printer, Loader2, Phone, Mail, MapPin, Globe } from 'lucide-react';
 
@@ -8,7 +8,6 @@ export default function App() {
     const [isOrderSent, setIsOrderSent] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState(null);
-    const formRef = useRef(null);
 
     const onDrop = useCallback((acceptedFiles) => {
         const newFiles = acceptedFiles.map(file => ({
@@ -50,17 +49,51 @@ export default function App() {
         setFiles(prevFiles => prevFiles.filter(file => file.id !== id));
     };
 
-    const handleSubmitOrder = () => {
+    const handleSubmitOrder = async () => {
         if (!customerName.trim()) {
             setSubmitError('Por favor, introduce tu nombre.');
             return;
         }
+
+        const YOUR_EMAIL = 'Fotocopiapapelito@gmail.com';
+        const FORM_ENDPOINT = `https://formsubmit.co/${YOUR_EMAIL}`;
+
         setIsSubmitting(true);
         setSubmitError(null);
 
-        // We are now submitting a hidden form to make the redirect work
-        // which should help with the activation process.
-        formRef.current.submit();
+        const formData = new FormData();
+
+        formData.append('_subject', `Nuevo Pedido de ${customerName}`);
+        formData.append('_captcha', 'false');
+
+        let orderSummary = `Pedido para: ${customerName}\n\nDetalles del Pedido:\n\n`;
+        files.forEach((file, index) => {
+            const optionsSummary = `Archivo #${index + 1}: ${file.name}\nOpciones: ${file.options.colorMode === 'bn' ? 'B&N' : 'Color'}, ${file.options.sides === 'una' ? 'Una Cara' : 'Doble Cara'}, Papel ${file.options.paperType}, ${file.options.copies} copias.\n\n`;
+            orderSummary += optionsSummary;
+            formData.append(`attachment_${index + 1}`, file.fileObject);
+        });
+
+        formData.append('message', orderSummary);
+
+        try {
+            const response = await fetch(FORM_ENDPOINT, {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (response.ok) {
+                setIsOrderSent(true);
+                setFiles([]);
+                setCustomerName('');
+            } else {
+                throw new Error('Network response was not ok.');
+            }
+        } catch (error) {
+            console.error('Error submitting form:', error);
+            setSubmitError('Hubo un error al enviar tu pedido. Por favor, inténtalo de nuevo.');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -107,25 +140,6 @@ export default function App() {
                         </div>
                     ) : (
                         <>
-                            {/* Hidden form for submission */}
-                            <form ref={formRef} action="https://formsubmit.co/Fotocopiapapelito@gmail.com" method="POST" encType="multipart/form-data" style={{display: 'none'}}>
-                                <input type="hidden" name="_subject" value={`Nuevo Pedido de ${customerName}`} />
-                                <input type="hidden" name="_captcha" value="false" />
-                                <input type="hidden" name="_next" value="https://fotocopiapapelito.netlify.app/thankyou.html" />
-
-                                <textarea name="message" readOnly value={
-                                    `Pedido para: ${customerName}\n\nDetalles del Pedido:\n\n` +
-                                    files.map((file, index) => 
-                                        `Archivo #${index + 1}: ${file.name}\nOpciones: ${file.options.colorMode === 'bn' ? 'B&N' : 'Color'}, ${file.options.sides === 'una' ? 'Una Cara' : 'Doble Cara'}, Papel ${file.options.paperType}, ${file.options.copies} copias.\n\n`
-                                    ).join('')
-                                }/>
-
-                                {files.map((file, index) => (
-                                    <input key={file.id} type="file" name={`attachment_${index + 1}`} style={{display: 'none'}} />
-                                ))}
-                            </form>
-
-
                             <div className="mb-6">
                                 <label htmlFor="customerName" className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
                                 <input
